@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang='th'>
+<head>
+<meta charset='utf-8'/>
+<meta name='viewport' content='width=device-width, initial-scale=1'/>
+<title>Japan Trip · True-Direction Schematic Maps v4</title>
+<style>
+:root{--paper:#fffdf9;--ink:#1f2937;--muted:#6b7280;--line:#e5e7eb;--shadow:0 18px 42px rgba(17,24,39,.08)}
+*{box-sizing:border-box} body{margin:0;background:linear-gradient(180deg,#fff7ed,#f6f0e8 42%,#f8fafc);font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Noto Sans Thai,Arial,sans-serif;color:var(--ink)}
+header{padding:34px 18px 24px;text-align:center;background:linear-gradient(135deg,#fff,#ede9fe)} h1{margin:0;font-size:clamp(30px,5vw,56px);letter-spacing:-.04em} .sub{color:var(--muted);margin-top:8px}
+.wrap{max-width:1380px;margin:auto;padding:18px} .panel,.day-card{background:rgba(255,255,255,.78);border:1px solid var(--line);border-radius:28px;padding:18px;box-shadow:var(--shadow);margin:18px 0}
+.tabs{display:flex;gap:8px;flex-wrap:wrap;position:sticky;top:0;z-index:20;background:rgba(246,240,232,.94);backdrop-filter:blur(10px);padding:12px 0} .tabs button{border:1px solid var(--line);background:#fff;border-radius:999px;padding:10px 13px;font-weight:900;cursor:pointer} .tabs button.active{background:#111827;color:#fff} .day-card.hidden{display:none}
+.overview-map,.route-map{width:100%;height:auto;border:1px solid var(--line);border-radius:24px;background:#fffdf9;display:block} .overview-map{height:540px} .route-map{height:430px}
+svg text{font-family:inherit;user-select:none} .map-bg{fill:#fff8ef} .grid{stroke:#e2e8f0;stroke-width:1;opacity:.35} .city-shape{fill:rgba(255,255,255,.28);stroke:#94a3b8;stroke-width:2;stroke-dasharray:7 7;opacity:.65} .bay{fill:#bae6fd;opacity:.5} .river{stroke:#7dd3fc;stroke-width:7;opacity:.55;stroke-linecap:round} .rail{fill:none;stroke:#9ca3af;stroke-width:4;stroke-dasharray:8 8;opacity:.45} .route-line{fill:none;stroke:#7c3aed;stroke-width:5;stroke-linecap:round;stroke-linejoin:round;opacity:.9} .pin-circle{stroke:white;stroke-width:4;filter:drop-shadow(0 5px 8px rgba(0,0,0,.22))} .pin-label{fill:white;font-size:12px;font-weight:900;text-anchor:middle;dominant-baseline:middle} .region-label{fill:#94a3b8;font-size:13px;font-weight:900}
+.two-col,.day-card{display:grid;grid-template-columns:minmax(430px,52%) 1fr;gap:18px} .map-side,.info-side{background:var(--paper);border:1px solid var(--line);border-radius:22px;padding:16px} .card-head{display:flex;align-items:flex-start;justify-content:space-between;gap:12px;margin-bottom:12px} .card-head h2{margin:0;font-size:24px} .card-head p{margin:5px 0 0;color:var(--muted);font-size:13px} .card-head span{white-space:nowrap;background:#ede9fe;color:#5b21b6;border-radius:999px;padding:7px 11px;font-size:12px;font-weight:900}
+.timeline{display:grid;gap:8px} .row{display:grid;grid-template-columns:75px 1fr;gap:10px;background:#fff;border:1px solid var(--line);border-radius:14px;padding:10px} .time{font-weight:1000;color:#6d28d9} .row b{display:block} .row span{display:block;color:var(--muted);font-size:13px;margin-top:3px}
+.segments{margin:0;padding-left:20px;color:#374151} .segments li{margin:8px 0} .links{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px} .links a{font-size:12px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-weight:900;color:#5b21b6;text-decoration:none} .note,.hint{font-size:13px;color:var(--muted);margin-top:10px}
+.legend{display:flex;gap:8px;flex-wrap:wrap;margin-top:10px} .legend span{display:inline-flex;align-items:center;gap:8px;background:#fff;border:1px solid var(--line);border-radius:999px;padding:7px 10px;font-size:12px;font-weight:800} .dot{width:10px;height:10px;border-radius:50%;display:inline-block}
+
+.tooltip-box{
+  position:fixed;
+  z-index:9999;
+  max-width:340px;
+  background:#111827;
+  color:white;
+  border-radius:16px;
+  padding:12px 14px;
+  box-shadow:0 18px 38px rgba(0,0,0,.28);
+  font-size:13px;
+  line-height:1.45;
+  pointer-events:none;
+  opacity:0;
+  transform:translate(12px,12px);
+  transition:opacity .12s ease;
+}
+.tooltip-box.show{opacity:1}
+.tooltip-box b{display:block;font-size:14px;margin-bottom:5px;color:#fff}
+.tooltip-box .muted{color:#cbd5e1;font-size:12px}
+.pin-group{cursor:pointer}
+.pin-group:hover .pin-circle{stroke:#facc15;stroke-width:5}
+
+
+.label-toggle{
+  border:1px solid var(--line);
+  background:#111827;
+  color:#fff;
+  border-radius:999px;
+  padding:10px 14px;
+  font-weight:900;
+  cursor:pointer;
+  margin-left:8px;
+}
+.label-toggle.off{background:#fff;color:#111827}
+.map-label{
+  fill:#111827;
+  font-size:12px;
+  font-weight:900;
+  paint-order:stroke;
+  stroke:#fffdf9;
+  stroke-width:4px;
+  stroke-linecap:round;
+  stroke-linejoin:round;
+  opacity:0;
+  pointer-events:none;
+}
+body.show-labels .map-label{opacity:1}
+.map-label-sub{
+  fill:#64748b;
+  font-size:10px;
+  font-weight:800;
+  paint-order:stroke;
+  stroke:#fffdf9;
+  stroke-width:4px;
+  opacity:0;
+  pointer-events:none;
+}
+body.show-labels .map-label-sub{opacity:1}
+
+@media(max-width:950px){.two-col,.day-card{grid-template-columns:1fr} .overview-map{height:430px} .route-map{height:360px}}
+</style>
+</head>
+<body>
+<header>
+  <h1>Japan Trip · True-Direction Schematic Maps</h1>
+  <div class='sub'>อัปเดตแล้ว: Day 4 เปลี่ยนเป็น Shinjuku ก่อนขึ้น Azusa และย้าย Asakusa ไป Day 7; บน map โชว์หมุดอย่างเดียวหรือเปิด Label ได้</div>
+</header>
+<div class='wrap'>
+  <section class='panel'>
+    <h2 style='margin:0 0 10px'>Tokyo Overview · corrected relative direction</h2>
+    <svg class='overview-map' id='overview' viewBox='0 0 1000 560' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='legend'><span><i class='dot' style='background:#111827'></i> Start / key point</span><span><i class='dot' style='background:#7c3aed'></i> Regular / clustered point</span><span><i class='dot' style='background:#dc2626'></i> Hotel / Disney</span><span><i class='dot' style='background:#16a34a'></i> End</span></div>
+    <div class='note'>Top map also hides long labels to avoid overlap. Hover on each pin to see the zone name and relation.</div>
+  </section>
+  <nav class='tabs'><button class='active' onclick="showDay('all',this)">All</button><button id='labelToggle' class='label-toggle off' onclick='toggleLabels()'>Label: Hover only</button><button onclick="showDay('d1',this)">Day 1</button><button onclick="showDay('d2',this)">Day 2</button><button onclick="showDay('d3',this)">Day 3</button><button onclick="showDay('d4',this)">Day 4</button><button onclick="showDay('d5',this)">Day 5</button><button onclick="showDay('d6',this)">Day 6</button><button onclick="showDay('d7',this)">Day 7</button><button onclick="showDay('d8',this)">Day 8</button></nav>
+  
+<section class='day-card' data-day='d1'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 1 · Bangkok → BKK</h2><p>Bangkok departure</p></div>
+      <span>Sleep: Airplane</span>
+    </div>
+    <svg class='route-map' id='map-d1' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>Evening</div><div><b>Go to BKK airport</b><span>จาก The Line → สนามบิน</span></div></div><div class='row'><div class='time'>Night</div><div><b>Flight</b><span>นอนบนเครื่อง</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>The Line → BKK: car/taxi ~30–60 min, ~10 km</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=The+Line+Bangkok'>S · The Line Bangkok</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Suvarnabhumi+Airport'>E · Suvarnabhumi Airport</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d2'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 2 · Tokyo First Day</h2><p>Shoes first day + Harajuku/Shibuya</p></div>
+      <span>Sleep: Sardonyx / APA</span>
+    </div>
+    <svg class='route-map' id='map-d2' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>09:00</div><div><b>Hotel / luggage</b><span>ฝากกระเป๋า</span></div></div><div class='row'><div class='time'>10:00</div><div><b>Harajuku</b><span>ซื้อรองเท้าวันแรก</span></div></div><div class='row'><div class='time'>11:30</div><div><b>Cat Street</b><span>fashion</span></div></div><div class='row'><div class='time'>13:30</div><div><b>Matcha + donut</b><span>พัก</span></div></div><div class='row'><div class='time'>16:00</div><div><b>Shibuya</b><span>shopping</span></div></div><div class='row'><div class='time'>20:00</div><div><b>Shinjuku optional</b><span>Disney Store / dinner</span></div></div><div class='row'><div class='time'>22:30</div><div><b>Hotel</b><span>กลับดึกได้</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>Hotel → Harajuku: ~25–35 min</li><li>Harajuku → Cat Street → Matcha → I'm donut: mostly walk</li><li>Shibuya → Shinjuku: JR ~7 min</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo'>S · Hotel Sardonyx Tokyo</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Harajuku+Station'>1 · Harajuku</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Cat+Street+Harajuku'>2 · Cat Street</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=THE+MATCHA+TOKYO+Omotesando'>3 · THE MATCHA TOKYO</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=I%27m+donut+Omotesando'>4 · I'm donut ?</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shibuya+Scramble+Crossing'>5 · Shibuya</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shinjuku+Station'>6 · Shinjuku</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo'>E · Hotel Sardonyx Tokyo</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d3'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 3 · DisneySea</h2><p>DisneySea is southeast/east bay side of Tokyo</p></div>
+      <span>Sleep: Sardonyx / APA</span>
+    </div>
+    <svg class='route-map' id='map-d3' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>06:15</div><div><b>Wake up</b><span>ออกเช้า</span></div></div><div class='row'><div class='time'>08:00</div><div><b>Gate</b><span>รอเปิด</span></div></div><div class='row'><div class='time'>09:00</div><div><b>Fantasy Springs first</b><span>แฟนเก็บเครื่องดัง</span></div></div><div class='row'><div class='time'>PM</div><div><b>Journey / Raging / Soaring</b><span>คุณเก็บ thrill</span></div></div><div class='row'><div class='time'>21:00+</div><div><b>Ginza optional</b><span>ถ้ายังมีแรง</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>Hotel → DisneySea: JR/Resort Line ~45–60 min, ~15 km</li><li>In-park walk: schematic only</li><li>DisneySea → Ginza/Hotel: ~45–60 min</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo'>S · Hotel Sardonyx Tokyo</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Tokyo+DisneySea'>1 · Tokyo DisneySea</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Fantasy+Springs+Tokyo+DisneySea'>2 · Fantasy Springs</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Journey+to+the+Center+of+the+Earth+Tokyo+DisneySea'>3 · Journey</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Raging+Spirits+Tokyo+DisneySea'>4 · Raging Spirits</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Soaring+Fantastic+Flight+Tokyo+DisneySea'>5 · Soaring</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Ginza+Station'>E · Ginza / Hotel</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d4'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 4 · Tokyo → Matsumoto</h2><p>Asakusa morning then west to Shinjuku, then far west to Matsumoto</p></div>
+      <span>Sleep: Matsumoto</span>
+    </div>
+    <svg class='route-map' id='map-d4' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>09:00</div><div><b>Check-out</b><span>ฝากกระเป๋า</span></div></div><div class='row'><div class='time'>10:00</div><div><b>Asakusa</b><span>Senso-ji / Matsuchiyama</span></div></div><div class='row'><div class='time'>11:30</div><div><b>Hat Coffee + Age.3</b><span>คาเฟ่และขนม</span></div></div><div class='row'><div class='time'>14:30</div><div><b>Shinjuku</b><span>ขึ้นรถไฟ</span></div></div><div class='row'><div class='time'>17:30+</div><div><b>Matsumoto</b><span>ปราสาท optional</span></div></div><div class='row'><div class='time'>20:30</div><div><b>Hotel</b><span>พักไว</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>Hotel → Asakusa: ~25–35 min</li><li>Asakusa cluster: mostly walk</li><li>Asakusa → Shinjuku: ~40–50 min</li><li>Shinjuku → Matsumoto: ~2h30m, ~180 km</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo'>S · Hotel Sardonyx Tokyo</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Senso-ji+Temple'>1 · Asakusa / Senso-ji</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Matsuchiyama+Shoden'>2 · Matsuchiyama Shoden</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Hat+Coffee+Asakusa'>3 · Hat Coffee</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Age.3+Asakusa'>4 · Age.3 Asakusa</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shinjuku+Station'>5 · Shinjuku Station</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Matsumoto+Station'>6 · Matsumoto Station</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Matsumoto+Castle'>7 · Matsumoto Castle</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Matsumoto+Hotel'>E · Matsumoto Hotel</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d5'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 5 · Kamikochi → Tokyo</h2><p>Must reach Shin-Shimashima at 08:00</p></div>
+      <span>Sleep: APA Ueno</span>
+    </div>
+    <svg class='route-map' id='map-d5' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>07:10</div><div><b>Leave hotel</b><span>ไป Matsumoto Station</span></div></div><div class='row'><div class='time'>08:00</div><div><b>Shin-Shimashima</b><span>ต้องถึงเวลานี้</span></div></div><div class='row'><div class='time'>09:20</div><div><b>Kappa Bridge</b><span>เริ่มเที่ยว</span></div></div><div class='row'><div class='time'>11:00</div><div><b>Myojin optional</b><span>ถ้ามีแรง</span></div></div><div class='row'><div class='time'>14:40</div><div><b>Return</b><span>fixed</span></div></div><div class='row'><div class='time'>21:30+</div><div><b>APA Ueno</b><span>ถ้ายังไหวเดิน Ueno/Okachimachi</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>Matsumoto → Shin-Shimashima: train ~35 min, ~14 km</li><li>Shin-Shimashima → Kamikochi: bus ~60–70 min, ~30 km</li><li>Kappa Bridge → Myojin: ~2.8 km one way</li><li>Kamikochi → Ueno: long return ~5–6 hr total</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Matsumoto+Hotel'>S · Matsumoto Hotel</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Matsumoto+Station'>1 · Matsumoto Station</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shin-Shimashima+Station'>2 · Shin-Shimashima Station</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Kappa+Bridge+Kamikochi'>3 · Kappa Bridge</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Myojin+Pond+Kamikochi'>4 · Myojin Pond</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Kamikochi+Bus+Terminal'>5 · Kamikochi Bus Terminal</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno'>E · APA Ueno</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d6'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 6 · Kamakura</h2><p>Southwest coastal day</p></div>
+      <span>Sleep: APA Ueno</span>
+    </div>
+    <svg class='route-map' id='map-d6' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>09:00</div><div><b>Leave hotel</b><span>ไป Kamakura</span></div></div><div class='row'><div class='time'>10:45</div><div><b>Hase area</b><span>Hase-dera / Kotoku-in</span></div></div><div class='row'><div class='time'>12:30</div><div><b>Lunch</b><span>Akatsuki option</span></div></div><div class='row'><div class='time'>15:00</div><div><b>Kamakura-kokomae</b><span>photo</span></div></div><div class='row'><div class='time'>16:30</div><div><b>Shichirigahama</b><span>beach</span></div></div><div class='row'><div class='time'>19:00</div><div><b>Komachi</b><span>dinner</span></div></div><div class='row'><div class='time'>22:30</div><div><b>APA Ueno</b><span>กลับโรงแรม</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>Ueno → Kamakura/Hase: ~1h45m</li><li>Hase cluster: walk</li><li>Hase → coast: Enoden ~10–15 min</li><li>Kamakura → Ueno: ~1h30–1h50</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno'>S · APA Ueno</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Hase-dera+Temple+Kamakura'>1 · Hase-dera</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Kotoku-in+Kamakura'>2 · Kotoku-in</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Akatsuki+Kamakura'>3 · Akatsuki</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Kamakurakokomae+Station'>4 · Kamakura-kokomae</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shichirigahama+Beach'>5 · Shichirigahama</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Komachi+Street+Kamakura'>6 · Komachi Street</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno'>E · APA Ueno</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d7'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 7 · Matcha Powder + Shopping</h2><p>Matcha powder focus, then shopping</p></div>
+      <span>Sleep: APA Ueno</span>
+    </div>
+    <svg class='route-map' id='map-d7' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>09:20</div><div><b>Takeya</b><span>ของฝาก</span></div></div><div class='row'><div class='time'>11:30</div><div><b>Seisho-en</b><span>ผงมัทฉะ</span></div></div><div class='row'><div class='time'>13:00</div><div><b>Ikedaya</b><span>ผงมัทฉะ</span></div></div><div class='row'><div class='time'>14:30</div><div><b>Ippodo backup</b><span>ตัวเลือกเพิ่ม</span></div></div><div class='row'><div class='time'>16:30</div><div><b>Shinjuku</b><span>cosmetics</span></div></div><div class='row'><div class='time'>18:30</div><div><b>Shibuya</b><span>final shopping</span></div></div><div class='row'><div class='time'>22:30</div><div><b>APA Ueno</b><span>pack</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>APA Ueno → Takeya: walk ~5–10 min</li><li>Ueno → Shinjuku: JR ~25–35 min</li><li>Shinjuku → matcha backup/Ginza side: ~20–30 min</li><li>Shinjuku → Shibuya: ~7–10 min</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno'>S · APA Ueno</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Takeya+Ueno'>1 · Takeya Ueno</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Seisho-en+Shinjuku+Store'>2 · Seisho-en Shinjuku Store</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Ikedaya+Tea+Store+Matcha+Tokyo'>3 · Ikedaya Tea Store</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Ippodo+Tea+Marunouchi'>4 · Ippodo / Jugetsudo backup</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shinjuku+Station'>5 · Shinjuku</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Shibuya+Parco'>6 · Shibuya</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno'>E · APA Ueno</a></div>
+  </div>
+</section>
+
+<section class='day-card' data-day='d8'>
+  <div class='map-side'>
+    <div class='card-head'>
+      <div><h2>Day 8 · Ueno → NRT</h2><p>Airport day</p></div>
+      <span>Sleep: Home</span>
+    </div>
+    <svg class='route-map' id='map-d8' viewBox='0 0 800 500' preserveAspectRatio='xMidYMid meet'></svg>
+    <div class='hint'>Hover ที่หมุดเพื่อดูชื่อ / เวลา / รายละเอียด · ถ้าจุดอยู่ติดกันจะรวมเป็นหมุดเดียว เช่น 1,2,3</div>
+  </div>
+  <div class='info-side'>
+    <h3>Timeline</h3>
+    <div class='timeline'><div class='row'><div class='time'>10:00</div><div><b>Check-out</b><span>APA Ueno</span></div></div><div class='row'><div class='time'>12:00</div><div><b>Keisei Ueno</b><span>airport train</span></div></div><div class='row'><div class='time'>14:00</div><div><b>NRT</b><span>ถึงก่อนเวลา</span></div></div><div class='row'><div class='time'>17:00</div><div><b>Flight</b><span>กลับไทย</span></div></div></div>
+    <h3>Travel / distance</h3>
+    <ul class='segments'><li>APA Ueno → Keisei Ueno: walk ~10–15 min</li><li>Keisei Ueno → NRT: airport train ~45–60 min, ~65 km</li></ul>
+    <div class='links'><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno'>S · APA Ueno</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Keisei+Ueno+Station'>1 · Keisei Ueno</a><a target='_blank' href='https://www.google.com/maps/search/?api=1&query=Narita+Airport'>E · Narita Airport</a></div>
+  </div>
+</section>
+
+</div>
+<div id='tooltip' class='tooltip-box'></div>
+<script>
+const days = {"d1": {"title": "Day 1 · Bangkok → BKK", "sleep": "Airplane", "note": "Bangkok departure", "points": [["S", "The Line Bangkok", 13.721, 100.727, "Evening", "Start from The Line", "https://www.google.com/maps/search/?api=1&query=The+Line+Bangkok"], ["E", "Suvarnabhumi Airport", 13.69, 100.7501, "Night", "Flight", "https://www.google.com/maps/search/?api=1&query=Suvarnabhumi+Airport"]], "segments": ["The Line → BKK: car/taxi ~30–60 min, ~10 km"], "timeline": [["Evening", "Go to BKK airport", "จาก The Line → สนามบิน"], ["Night", "Flight", "นอนบนเครื่อง"]]}, "d2": {"title": "Day 2 · Tokyo First Day", "sleep": "Sardonyx / APA", "note": "Shoes first day + Harajuku/Shibuya", "points": [["S", "Hotel Sardonyx Tokyo", 35.6761, 139.7795, "09:00", "Luggage drop / breakfast to-go", "https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo"], ["1", "Harajuku", 35.6702, 139.7027, "10:00", "Shoes: On / Salomon / ASICS / NB", "https://www.google.com/maps/search/?api=1&query=Harajuku+Station"], ["2", "Cat Street", 35.6668, 139.7047, "11:30", "Human Made / Stussy / Brandy", "https://www.google.com/maps/search/?api=1&query=Cat+Street+Harajuku"], ["3", "THE MATCHA TOKYO", 35.6681, 139.7064, "13:30", "Matcha break", "https://www.google.com/maps/search/?api=1&query=THE+MATCHA+TOKYO+Omotesando"], ["4", "I'm donut ?", 35.6662, 139.706, "14:15", "Snack stop", "https://www.google.com/maps/search/?api=1&query=I%27m+donut+Omotesando"], ["5", "Shibuya", 35.6595, 139.7005, "16:00", "Shopping / dinner", "https://www.google.com/maps/search/?api=1&query=Shibuya+Scramble+Crossing"], ["6", "Shinjuku", 35.6909, 139.7003, "20:00", "Optional late stop", "https://www.google.com/maps/search/?api=1&query=Shinjuku+Station"], ["E", "Hotel Sardonyx Tokyo", 35.6761, 139.7795, "22:30", "Back hotel", "https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo"]], "segments": ["Hotel → Harajuku: ~25–35 min", "Harajuku → Cat Street → Matcha → I'm donut: mostly walk", "Shibuya → Shinjuku: JR ~7 min"], "timeline": [["09:00", "Hotel / luggage", "ฝากกระเป๋า"], ["10:00", "Harajuku", "ซื้อรองเท้าวันแรก"], ["11:30", "Cat Street", "fashion"], ["13:30", "Matcha + donut", "พัก"], ["16:00", "Shibuya", "shopping"], ["20:00", "Shinjuku optional", "Disney Store / dinner"], ["22:30", "Hotel", "กลับดึกได้"]]}, "d3": {"title": "Day 3 · DisneySea", "sleep": "Sardonyx / APA", "note": "DisneySea is southeast/east bay side of Tokyo", "points": [["S", "Hotel Sardonyx Tokyo", 35.6761, 139.7795, "07:00", "Leave early", "https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo"], ["1", "Tokyo DisneySea", 35.6266, 139.8856, "08:00", "Queue at gate", "https://www.google.com/maps/search/?api=1&query=Tokyo+DisneySea"], ["2", "Fantasy Springs", 35.6298, 139.8874, "09:00", "Peter Pan / Rapunzel / Frozen", "https://www.google.com/maps/search/?api=1&query=Fantasy+Springs+Tokyo+DisneySea"], ["3", "Journey", 35.6283, 139.8798, "13:00", "Thrill, not drop ride", "https://www.google.com/maps/search/?api=1&query=Journey+to+the+Center+of+the+Earth+Tokyo+DisneySea"], ["4", "Raging Spirits", 35.6298, 139.8862, "15:00", "Thrill ride", "https://www.google.com/maps/search/?api=1&query=Raging+Spirits+Tokyo+DisneySea"], ["5", "Soaring", 35.6257, 139.8816, "18:00", "Famous couple ride", "https://www.google.com/maps/search/?api=1&query=Soaring+Fantastic+Flight+Tokyo+DisneySea"], ["E", "Ginza / Hotel", 35.6719, 139.7657, "22:00+", "Optional late dinner", "https://www.google.com/maps/search/?api=1&query=Ginza+Station"]], "segments": ["Hotel → DisneySea: JR/Resort Line ~45–60 min, ~15 km", "In-park walk: schematic only", "DisneySea → Ginza/Hotel: ~45–60 min"], "timeline": [["06:15", "Wake up", "ออกเช้า"], ["08:00", "Gate", "รอเปิด"], ["09:00", "Fantasy Springs first", "แฟนเก็บเครื่องดัง"], ["PM", "Journey / Raging / Soaring", "คุณเก็บ thrill"], ["21:00+", "Ginza optional", "ถ้ายังมีแรง"]]}, "d4": {"title": "Day 4 · Tokyo → Matsumoto", "sleep": "Matsumoto", "note": "Check-out then keep this day around Shinjuku because Azusa departs from Shinjuku", "points": [["S", "Hotel Sardonyx Tokyo", 35.6761, 139.7795, "09:00", "Check-out / luggage", "https://www.google.com/maps/search/?api=1&query=Hotel+Sardonyx+Tokyo"], ["1", "Shinjuku Station", 35.6909, 139.7003, "10:00", "Put luggage in locker / base area", "https://www.google.com/maps/search/?api=1&query=Shinjuku+Station"], ["2", "Hanazono Shrine", 35.6934, 139.7068, "10:30", "Short shrine stop", "https://www.google.com/maps/search/?api=1&query=Hanazono+Shrine+Shinjuku"], ["3", "Disney Store Shinjuku / Flags area", 35.6901, 139.7017, "11:15", "Disney Store + browsing", "https://www.google.com/maps/search/?api=1&query=Disney+Store+Shinjuku"], ["4", "Seisho-en Shinjuku Store", 35.6909, 139.7003, "12:00", "Buy matcha powder if convenient", "https://www.google.com/maps/search/?api=1&query=Seisho-en+Shinjuku+Store"], ["5", "Shinjuku lunch", 35.6909, 139.7003, "12:45", "Lunch near station before train", "https://www.google.com/maps/search/?api=1&query=Shinjuku+Station+restaurants"], ["6", "Shinjuku Station", 35.6909, 139.7003, "14:30", "Limited Express Azusa to Matsumoto", "https://www.google.com/maps/search/?api=1&query=Shinjuku+Station"], ["7", "Matsumoto Station", 36.2304, 137.9644, "17:30+", "Arrive Matsumoto", "https://www.google.com/maps/search/?api=1&query=Matsumoto+Station"], ["8", "Matsumoto Castle", 36.2381, 137.9686, "18:15", "Castle exterior / Nawate optional", "https://www.google.com/maps/search/?api=1&query=Matsumoto+Castle"], ["E", "Matsumoto Hotel", 36.2318, 137.9665, "20:30", "Check-in / rest", "https://www.google.com/maps/search/?api=1&query=Matsumoto+Hotel"]], "segments": ["Hotel → Shinjuku: ~25–35 min", "Shinjuku cluster: mostly walk / station area", "Shinjuku → Matsumoto: Limited Express Azusa ~2h30m, ~180 km", "Matsumoto Station → Castle/Hotel: walk/bus/taxi depending luggage"], "timeline": [["09:00", "Check-out", "ออกจาก Sardonyx / ฝากหรือย้ายกระเป๋า"], ["10:00", "Shinjuku base", "locker / station area"], ["10:30", "Hanazono Shrine", "แวะสั้น ๆ"], ["11:15", "Disney Store / Flags", "เดินเล่นใกล้สถานี"], ["12:00", "Seisho-en", "ซื้อผงมัทฉะถ้าร้านสะดวก"], ["12:45", "Lunch", "กินใกล้ Shinjuku Station"], ["14:30", "Azusa to Matsumoto", "ขึ้นรถไฟจาก Shinjuku"], ["17:30+", "Matsumoto", "ถึงแล้วเดิน Castle/Nawate แบบเบา ๆ"], ["20:30", "Hotel", "พักไวเพื่อ Kamikochi"]]}, "d5": {"title": "Day 5 · Kamikochi → Tokyo", "sleep": "APA Ueno", "note": "Must reach Shin-Shimashima at 08:00", "points": [["S", "Matsumoto Hotel", 36.2318, 137.9665, "07:10", "Leave hotel", "https://www.google.com/maps/search/?api=1&query=Matsumoto+Hotel"], ["1", "Matsumoto Station", 36.2304, 137.9644, "07:25", "Train", "https://www.google.com/maps/search/?api=1&query=Matsumoto+Station"], ["2", "Shin-Shimashima Station", 36.2475, 137.7267, "08:00", "Arrive target", "https://www.google.com/maps/search/?api=1&query=Shin-Shimashima+Station"], ["3", "Kappa Bridge", 36.2456, 137.638, "09:20", "Main view", "https://www.google.com/maps/search/?api=1&query=Kappa+Bridge+Kamikochi"], ["4", "Myojin Pond", 36.2571, 137.6452, "11:00", "Optional walk", "https://www.google.com/maps/search/?api=1&query=Myojin+Pond+Kamikochi"], ["5", "Kamikochi Bus Terminal", 36.2452, 137.6371, "14:40", "Return", "https://www.google.com/maps/search/?api=1&query=Kamikochi+Bus+Terminal"], ["E", "APA Ueno", 35.7117, 139.7784, "21:30+", "Check-in", "https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno"]], "segments": ["Matsumoto → Shin-Shimashima: train ~35 min, ~14 km", "Shin-Shimashima → Kamikochi: bus ~60–70 min, ~30 km", "Kappa Bridge → Myojin: ~2.8 km one way", "Kamikochi → Ueno: long return ~5–6 hr total"], "timeline": [["07:10", "Leave hotel", "ไป Matsumoto Station"], ["08:00", "Shin-Shimashima", "ต้องถึงเวลานี้"], ["09:20", "Kappa Bridge", "เริ่มเที่ยว"], ["11:00", "Myojin optional", "ถ้ามีแรง"], ["14:40", "Return", "fixed"], ["21:30+", "APA Ueno", "ถ้ายังไหวเดิน Ueno/Okachimachi"]]}, "d6": {"title": "Day 6 · Kamakura", "sleep": "APA Ueno", "note": "Southwest coastal day", "points": [["S", "APA Ueno", 35.7117, 139.7784, "09:00", "Leave hotel", "https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno"], ["1", "Hase-dera", 35.3127, 139.5334, "10:45", "Temple", "https://www.google.com/maps/search/?api=1&query=Hase-dera+Temple+Kamakura"], ["2", "Kotoku-in", 35.3167, 139.5351, "11:30", "Great Buddha", "https://www.google.com/maps/search/?api=1&query=Kotoku-in+Kamakura"], ["3", "Akatsuki", 35.3115, 139.5347, "12:30", "Lunch", "https://www.google.com/maps/search/?api=1&query=Akatsuki+Kamakura"], ["4", "Kamakura-kokomae", 35.3082, 139.501, "15:00", "Photo spot", "https://www.google.com/maps/search/?api=1&query=Kamakurakokomae+Station"], ["5", "Shichirigahama", 35.3053, 139.5169, "16:30", "Beach", "https://www.google.com/maps/search/?api=1&query=Shichirigahama+Beach"], ["6", "Komachi Street", 35.3197, 139.551, "19:00", "Dinner/snack", "https://www.google.com/maps/search/?api=1&query=Komachi+Street+Kamakura"], ["E", "APA Ueno", 35.7117, 139.7784, "22:30", "Back hotel", "https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno"]], "segments": ["Ueno → Kamakura/Hase: ~1h45m", "Hase cluster: walk", "Hase → coast: Enoden ~10–15 min", "Kamakura → Ueno: ~1h30–1h50"], "timeline": [["09:00", "Leave hotel", "ไป Kamakura"], ["10:45", "Hase area", "Hase-dera / Kotoku-in"], ["12:30", "Lunch", "Akatsuki option"], ["15:00", "Kamakura-kokomae", "photo"], ["16:30", "Shichirigahama", "beach"], ["19:00", "Komachi", "dinner"], ["22:30", "APA Ueno", "กลับโรงแรม"]]}, "d7": {"title": "Day 7 · Asakusa + Matcha Powder + Shopping", "sleep": "APA Ueno", "note": "Move Asakusa here because APA Ueno is close to Asakusa; then continue matcha powder and final shopping", "points": [["S", "APA Ueno", 35.7117, 139.7784, "09:00", "Start from Ueno", "https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno"], ["1", "Asakusa / Senso-ji", 35.7148, 139.7967, "09:30", "Senso-ji + Nakamise", "https://www.google.com/maps/search/?api=1&query=Senso-ji+Temple"], ["2", "Matsuchiyama Shoden", 35.7198, 139.8022, "10:15", "Temple stop", "https://www.google.com/maps/search/?api=1&query=Matsuchiyama+Shoden"], ["3", "Hat Coffee", 35.7126, 139.7976, "11:00", "Cafe", "https://www.google.com/maps/search/?api=1&query=Hat+Coffee+Asakusa"], ["4", "Age.3 Asakusa", 35.7137, 139.7951, "11:45", "Dessert/snack", "https://www.google.com/maps/search/?api=1&query=Age.3+Asakusa"], ["5", "Takeya Ueno", 35.7072, 139.7777, "13:00", "Cosmetics / gifts", "https://www.google.com/maps/search/?api=1&query=Takeya+Ueno"], ["6", "Ikedaya Tea Store", 35.7062, 139.7712, "14:00", "Matcha powder", "https://www.google.com/maps/search/?api=1&query=Ikedaya+Tea+Store+Matcha+Tokyo"], ["7", "Shinjuku / Seisho-en backup", 35.6909, 139.7003, "16:00", "Matcha powder backup + cosmetics", "https://www.google.com/maps/search/?api=1&query=Seisho-en+Shinjuku+Store"], ["8", "Shibuya", 35.6595, 139.7005, "18:30", "Final shopping / dinner", "https://www.google.com/maps/search/?api=1&query=Shibuya+Parco"], ["E", "APA Ueno", 35.7117, 139.7784, "22:30", "Pack luggage", "https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno"]], "segments": ["APA Ueno → Asakusa: ~10–20 min by train/taxi, short distance", "Asakusa cluster: mostly walk", "Asakusa → Ueno/Takeya: ~10–20 min", "Ueno → Shinjuku: JR ~25–35 min", "Shinjuku → Shibuya: JR ~7–10 min", "Shibuya → APA Ueno: JR/Metro ~30–40 min"], "timeline": [["09:00", "APA Ueno", "เริ่มวันจาก Ueno"], ["09:30", "Asakusa / Senso-ji", "ย้ายมาจาก Day 4"], ["10:15", "Matsuchiyama Shoden", "temple stop"], ["11:00", "Hat Coffee", "คาเฟ่"], ["11:45", "Age.3", "dessert/snack"], ["13:00", "Takeya Ueno", "ของฝาก / cosmetics"], ["14:00", "Ikedaya Tea Store", "ผงมัทฉะ"], ["16:00", "Shinjuku", "Seisho-en backup / cosmetics"], ["18:30", "Shibuya", "final shopping + dinner"], ["22:30", "APA Ueno", "แพ็กกระเป๋า"]]}, "d8": {"title": "Day 8 · Ueno → NRT", "sleep": "Home", "note": "Airport day", "points": [["S", "APA Ueno", 35.7117, 139.7784, "10:00", "Check-out", "https://www.google.com/maps/search/?api=1&query=APA+Hotel+Ueno"], ["1", "Keisei Ueno", 35.7122, 139.7733, "12:00", "Airport train", "https://www.google.com/maps/search/?api=1&query=Keisei+Ueno+Station"], ["E", "Narita Airport", 35.772, 140.3929, "14:00", "Arrive before 14:00", "https://www.google.com/maps/search/?api=1&query=Narita+Airport"]], "segments": ["APA Ueno → Keisei Ueno: walk ~10–15 min", "Keisei Ueno → NRT: airport train ~45–60 min, ~65 km"], "timeline": [["10:00", "Check-out", "APA Ueno"], ["12:00", "Keisei Ueno", "airport train"], ["14:00", "NRT", "ถึงก่อนเวลา"], ["17:00", "Flight", "กลับไทย"]]}};
+const overview = [["Alt", "Ikebukuro", 35.7289, 139.7101, "northwest of Tokyo core"], ["D2", "Shinjuku", 35.6909, 139.7003, "north of Shibuya"], ["D2", "Shibuya / Harajuku", 35.6645, 139.7037, "south of Shinjuku"], ["Late", "Tokyo / Ginza", 35.6812, 139.7671, "east/right of Shibuya"], ["H1", "Sardonyx", 35.6761, 139.7795, "central-east / hotel"], ["H2", "Ueno", 35.7117, 139.7784, "north of Tokyo Station"], ["D4", "Asakusa", 35.7148, 139.7967, "east of Ueno"], ["D3", "DisneySea", 35.6266, 139.8856, "southeast / bay area"]];
+function boundsFor(points) { let lats=points.map(p=>p[2]), lngs=points.map(p=>p[3]); let minLat=Math.min(...lats), maxLat=Math.max(...lats), minLng=Math.min(...lngs), maxLng=Math.max(...lngs); let latPad=(maxLat-minLat||0.01)*0.22, lngPad=(maxLng-minLng||0.01)*0.22; return {minLat:minLat-latPad,maxLat:maxLat+latPad,minLng:minLng-lngPad,maxLng:maxLng+lngPad}; }
+function project(p,b,w,h,pad=60) { const x = pad + (p[3]-b.minLng)/(b.maxLng-b.minLng)*(w-pad*2); const y = pad + (b.maxLat-p[2])/(b.maxLat-b.minLat)*(h-pad*2); return [x,y]; }
+function pinColor(label) { if(label.includes('S')) return '#111827'; if(label.includes('E')) return '#16a34a'; if(label.includes('H')||label.includes('D3')) return '#dc2626'; if(label.includes('Late')) return '#0284c7'; return '#7c3aed'; }
+function drawGrid(w,h) { let out = `<rect class="map-bg" x="0" y="0" width="${w}" height="${h}"/>`; for(let x=0;x<=w;x+=70) out += `<line class="grid" x1="${x}" y1="0" x2="${x}" y2="${h}"/>`; for(let y=0;y<=h;y+=70) out += `<line class="grid" x1="0" y1="${y}" x2="${w}" y2="${y}"/>`; return out; }
+function clusterProjected(points, threshold=26) { const clusters=[]; points.forEach(pt=>{ let found=null; for(const c of clusters) { const dx=pt.x-c.x, dy=pt.y-c.y; if(Math.sqrt(dx*dx+dy*dy)<=threshold) { found=c; break; } } if(found) { found.items.push(pt); found.x=found.items.reduce((s,p)=>s+p.x,0)/found.items.length; found.y=found.items.reduce((s,p)=>s+p.y,0)/found.items.length; } else { clusters.push({x:pt.x,y:pt.y,items:[pt]}); } }); return clusters; }
+function clusterLabel(items) { return items.map(i=>i.label).join(','); }
+function clusterTitle(items) { return items.map(i=>`${i.label} · ${i.name} · ${i.time} · ${i.desc}`).join('\n'); }
+
+function escapeHtml(str) {
+  return String(str)
+    .replaceAll('&','&amp;')
+    .replaceAll('<','&lt;')
+    .replaceAll('>','&gt;')
+    .replaceAll('"','&quot;')
+    .replaceAll("'",'&#039;')
+    .replaceAll('\\n','<br>');
+}
+function bindTooltips() {
+  const tooltip = document.getElementById('tooltip');
+  document.querySelectorAll('.pin-group').forEach(g => {
+    g.addEventListener('mousemove', e => {
+      const raw = g.getAttribute('data-tip') || '';
+      const lines = raw.split('<br>');
+      const first = lines.shift() || '';
+      tooltip.innerHTML = `<b>${first}</b>${lines.length ? '<div class="muted">' + lines.join('<br>') + '</div>' : ''}`;
+      const pad = 18;
+      let x = e.clientX + 14;
+      let y = e.clientY + 14;
+      const rectW = 340;
+      const rectH = 160;
+      if (x + rectW > window.innerWidth) x = e.clientX - rectW - pad;
+      if (y + rectH > window.innerHeight) y = e.clientY - rectH - pad;
+      tooltip.style.left = x + 'px';
+      tooltip.style.top = y + 'px';
+      tooltip.classList.add('show');
+    });
+    g.addEventListener('mouseleave', () => tooltip.classList.remove('show'));
+  });
+}
+
+
+function shortLabel(items) {
+  if (items.length > 1) return items.map(i=>i.label).join(',') + ' · cluster';
+  const i = items[0];
+  return i.name.length > 24 ? i.name.slice(0, 24) + '…' : i.name;
+}
+function labelPosition(x, y, w) {
+  const rightSide = x > w * 0.68;
+  return {
+    x: rightSide ? x - 24 : x + 24,
+    anchor: rightSide ? 'end' : 'start'
+  };
+}
+function toggleLabels() {
+  const body = document.body;
+  const btn = document.getElementById('labelToggle');
+  body.classList.toggle('show-labels');
+  const on = body.classList.contains('show-labels');
+  btn.textContent = on ? 'Label: Always show' : 'Label: Hover only';
+  btn.classList.toggle('off', !on);
+}
+
+function drawOverview() { const svg=document.getElementById('overview'), w=1000, h=560; const b={minLat:35.60,maxLat:35.75,minLng:139.66,maxLng:139.91}; let out=drawGrid(w,h); out += `<path class="city-shape" d="M115,105 C265,35 505,40 700,105 C850,160 925,280 880,420 C740,505 500,530 285,480 C120,435 65,275 115,105Z"/>`; out += `<path class="bay" d="M710,360 C830,330 940,370 1000,470 L1000,560 L650,560 C665,490 675,405 710,360Z"/>`; out += `<path class="river" d="M760,85 C720,175 745,250 705,335 C675,400 700,460 660,525"/>`; out += `<ellipse class="rail" cx="405" cy="290" rx="205" ry="160" transform="rotate(-12 405 290)"/>`; out += `<text class="region-label" x="120" y="92">West Tokyo</text><text class="region-label" x="415" y="80">Central Tokyo</text><text class="region-label" x="720" y="90">East Tokyo</text><text class="region-label" x="785" y="475">Tokyo Bay</text>`; const projected=overview.map(p=>{ const [x,y]=project(p,b,w,h,70); return {label:p[0],name:p[1],desc:p[4],x,y}; }); const clusters=clusterProjected(projected,24); clusters.forEach(c=>{ const label=clusterLabel(c.items); const color=pinColor(label); const title=c.items.map(i=>`${i.label} · ${i.name} · ${i.desc}`).join('\n'); const lp = labelPosition(c.x, c.y, w); out += `<g class="pin-group" data-tip="${escapeHtml(title)}"><circle class="pin-circle" cx="${c.x}" cy="${c.y}" r="18" fill="${color}"/><text class="pin-label" x="${c.x}" y="${c.y}">${label}</text><text class="map-label" x="${lp.x}" y="${c.y-2}" text-anchor="${lp.anchor}">${shortLabel(c.items)}</text><text class="map-label-sub" x="${lp.x}" y="${c.y+14}" text-anchor="${lp.anchor}">${label}</text></g>`; }); svg.innerHTML=out; }
+function drawDay(key) { const d=days[key], svg=document.getElementById('map-'+key), w=800, h=500, pts=d.points; let b=boundsFor(pts); let out=drawGrid(w,h); out += `<path class="city-shape" d="M105,80 C260,20 520,35 675,95 C765,165 755,330 650,410 C480,485 250,470 115,380 C35,280 40,145 105,80Z"/>`; out += `<path class="bay" d="M605,315 C700,290 770,330 800,405 L800,500 L560,500 C575,430 580,350 605,315Z"/>`; const projected=pts.map(p=>{ const [x,y]=project(p,b,w,h,65); return {label:p[0],name:p[1],time:p[4],desc:p[5],link:p[6],x,y}; }); const path=projected.map((q,i)=>(i?'L':'M')+q.x.toFixed(1)+','+q.y.toFixed(1)).join(' '); out += `<path class="route-line" d="${path}"/>`; const clusters=clusterProjected(projected,28); clusters.forEach(c=>{ const label=clusterLabel(c.items); const color=pinColor(label); const title=clusterTitle(c.items); const lp = labelPosition(c.x, c.y, w); out += `<g class="pin-group" data-tip="${escapeHtml(title)}"><circle class="pin-circle" cx="${c.x}" cy="${c.y}" r="18" fill="${color}"/><text class="pin-label" x="${c.x}" y="${c.y}">${label}</text><text class="map-label" x="${lp.x}" y="${c.y-2}" text-anchor="${lp.anchor}">${shortLabel(c.items)}</text><text class="map-label-sub" x="${lp.x}" y="${c.y+14}" text-anchor="${lp.anchor}">${label}</text></g>`; }); svg.innerHTML=out; }
+function showDay(day,btn) { document.querySelectorAll('.tabs button').forEach(b=>b.classList.remove('active')); btn.classList.add('active'); document.querySelectorAll('.day-card').forEach(card=>card.classList.toggle('hidden', day!=='all' && card.dataset.day!==day)); }
+drawOverview(); Object.keys(days).forEach(drawDay); bindTooltips();
+</script>
+</body>
+</html>
