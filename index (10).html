@@ -1,0 +1,420 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>TOEIC Listening Answer Sheet</title>
+<style>
+  :root{
+    --bg:#f5f6f8; --card:#ffffff; --text:#1f2430; --muted:#6b7280;
+    --accent:#2563eb; --border:#e2e5ea; --scale:1;
+    --good:#16a34a; --bad:#dc2626; --key:#d97706;
+  }
+  @media (prefers-color-scheme: dark){
+    :root:not([data-theme="light"]){
+      --bg:#15171c; --card:#1e2128; --text:#eef0f3; --muted:#9aa1ad;
+      --accent:#4f8cff; --border:#2c303a;
+      --good:#22c55e; --bad:#f87171; --key:#f0b93a;
+    }
+  }
+  :root[data-theme="dark"]{
+    --bg:#15171c; --card:#1e2128; --text:#eef0f3; --muted:#9aa1ad;
+    --accent:#4f8cff; --border:#2c303a;
+    --good:#22c55e; --bad:#f87171; --key:#f0b93a;
+  }
+  *{box-sizing:border-box;}
+  html{scroll-padding-top:env(safe-area-inset-top,0px);}
+  body{
+    margin:0; background:var(--bg); color:var(--text);
+    font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;
+    padding-top:env(safe-area-inset-top,0px);
+    padding-bottom:env(safe-area-inset-bottom,0px);
+  }
+  header{
+    position:sticky; top:0; z-index:10;
+    padding:14px 16px; padding-top:calc(14px + env(safe-area-inset-top,0px));
+    background:var(--card); border-bottom:1px solid var(--border);
+    display:flex; align-items:center; justify-content:space-between; flex-wrap:wrap; gap:10px;
+  }
+  h1{font-size:16px; margin:0;}
+  .stats{font-size:13px; color:var(--muted);}
+  .controls{display:flex; gap:8px; flex-wrap:wrap; align-items:center;}
+  button.ctrl{
+    font-size:13px; padding:6px 10px; border-radius:8px; border:1px solid var(--border);
+    background:var(--card); color:var(--text); cursor:pointer;
+  }
+  button.ctrl:hover{border-color:var(--accent);}
+  button.ctrl.active{background:var(--key); color:#fff; border-color:var(--key);}
+  button.primary{
+    background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;
+  }
+  .zoom-group{display:flex; align-items:center; gap:4px; border:1px solid var(--border); border-radius:8px; overflow:hidden;}
+  .zoom-group button{
+    border:none; background:var(--card); color:var(--text); padding:6px 12px; cursor:pointer; font-size:15px;
+  }
+  .zoom-group button:hover{background:var(--accent); color:#fff;}
+  .zoom-label{font-size:12px; color:var(--muted); padding:0 6px; min-width:38px; text-align:center;}
+
+  .mode-banner{
+    display:none; text-align:center; font-size:13px; font-weight:600;
+    padding:8px; background:color-mix(in srgb, var(--key) 18%, transparent);
+    color:var(--key); border-bottom:1px solid var(--border);
+  }
+  .mode-banner.show{display:block;}
+  .warning-banner{
+    display:none; text-align:center; font-size:13px; font-weight:600;
+    padding:8px; background:color-mix(in srgb, var(--bad) 18%, transparent);
+    color:var(--bad); border-bottom:1px solid var(--border);
+  }
+  .warning-banner.show{display:block;}
+
+  main{max-width:900px; margin:0 auto; padding:16px;}
+
+  .part{margin-bottom:22px;}
+  .part-title{
+    font-size:calc(14px * var(--scale)); font-weight:700; color:var(--accent);
+    margin:0 0 8px 2px; display:flex; align-items:baseline; gap:8px;
+  }
+  .part-sub{font-size:calc(11px * var(--scale)); color:var(--muted); font-weight:400;}
+  .part-score{font-size:calc(11px * var(--scale)); color:var(--muted); font-weight:600; margin-left:auto;}
+
+  .grid{
+    display:grid;
+    grid-template-columns:repeat(auto-fill, minmax(calc(150px * var(--scale)),1fr));
+    gap:calc(10px * var(--scale));
+  }
+  .item{
+    background:var(--card); border:1px solid var(--border); border-radius:10px;
+    padding:calc(8px * var(--scale)) calc(10px * var(--scale));
+    display:flex; align-items:center; gap:calc(8px * var(--scale));
+    transition:border-color .15s;
+  }
+  .qnum{
+    font-size:calc(13px * var(--scale)); color:var(--muted);
+    width:calc(28px * var(--scale)); text-align:right; flex-shrink:0;
+  }
+  .choices{display:flex; gap:4px; flex:1;}
+  .choice{
+    flex:1; padding:calc(6px * var(--scale)) 0; text-align:center; border-radius:6px;
+    border:1px solid var(--border); background:transparent; color:var(--text);
+    font-size:calc(13px * var(--scale)); cursor:pointer; user-select:none; -webkit-user-select:none;
+    transition:background .12s, color .12s, border-color .12s;
+  }
+  .choice.selected{
+    background:var(--accent); color:#fff; border-color:var(--accent); font-weight:600;
+  }
+  /* answer-key mode styling */
+  body.key-mode .choice.selected{
+    background:var(--key); border-color:var(--key);
+  }
+  /* graded state (after submit) */
+  .item.correct{border-color:var(--good);}
+  .item.incorrect{border-color:var(--bad);}
+  .choice.mark-correct{outline:2px solid var(--good); outline-offset:-2px;}
+  .choice.mark-missed{outline:2px solid var(--bad); outline-offset:-2px;}
+
+  footer{text-align:center; padding:20px; color:var(--muted); font-size:12px;}
+
+  .score-panel{
+    display:none; max-width:900px; margin:0 auto 20px; padding:16px 18px;
+    background:var(--card); border:1px solid var(--border); border-radius:12px;
+  }
+  .score-panel.show{display:block;}
+  .score-panel h2{margin:0 0 10px; font-size:16px;}
+  .score-big{font-size:28px; font-weight:800; color:var(--accent);}
+  .score-rows{display:grid; grid-template-columns:repeat(auto-fit,minmax(140px,1fr)); gap:8px; margin-top:10px; font-size:13px; color:var(--muted);}
+  .score-rows div span{color:var(--text); font-weight:600;}
+</style>
+</head>
+<body>
+<header>
+  <h1>TOEIC Listening — Answer Sheet</h1>
+  <div class="stats" id="stats">0 / 100 answered</div>
+  <div class="controls">
+    <div class="zoom-group">
+      <button id="zoomOut" title="Zoom out">−</button>
+      <span class="zoom-label" id="zoomLabel">100%</span>
+      <button id="zoomIn" title="Zoom in">+</button>
+    </div>
+    <button class="ctrl" id="keyModeBtn">🔑 Set Answer Key</button>
+    <button class="ctrl" id="clearBtn">Clear All</button>
+    <button class="ctrl primary" id="submitBtn">Submit</button>
+  </div>
+</header>
+<div class="mode-banner" id="modeBanner">Answer Key Mode — click the CORRECT choice for each question, then turn this off to practice.</div>
+<div class="warning-banner" id="noKeyWarning">No answer key set yet. Click "🔑 Set Answer Key", mark the correct choice for each question, then submit.</div>
+
+<div class="score-panel" id="scorePanel">
+  <h2>Result</h2>
+  <div class="score-big" id="scoreBig">–</div>
+  <div class="score-rows" id="scoreRows"></div>
+</div>
+
+<main id="main"></main>
+<footer>Tap A/B/C/D — tap again to unselect. Leave blank if unsure.</footer>
+
+<script>
+const CHOICES = ["A","B","C","D"];
+const PARTS = [
+  {label:"Part 1", sub:"Photographs", start:1, end:6},
+  {label:"Part 2", sub:"Question-Response", start:7, end:31},
+  {label:"Part 3", sub:"Conversations", start:32, end:71},
+  {label:"Part 4", sub:"Talks", start:72, end:100}
+];
+const TOTAL = 100;
+
+const main = document.getElementById('main');
+const statsEl = document.getElementById('stats');
+const answers = {};      // user's picks: {qnum: letter}
+const answerKey = {};    // correct answers: {qnum: letter}
+const itemEls = {};      // qnum -> {itemDiv, choicesDiv}
+let keyMode = false;
+let submitted = false;
+
+function saveState(){
+  try{
+    localStorage.setItem('toeic_answers', JSON.stringify(answers));
+    localStorage.setItem('toeic_key', JSON.stringify(answerKey));
+    localStorage.setItem('toeic_keymode', JSON.stringify(keyMode));
+  }catch(e){ /* storage unavailable, ignore */ }
+}
+
+function loadState(){
+  try{
+    const a = localStorage.getItem('toeic_answers');
+    const k = localStorage.getItem('toeic_key');
+    const m = localStorage.getItem('toeic_keymode');
+    if(a){ const parsed = JSON.parse(a); Object.keys(parsed).forEach(q=> answers[q]=parsed[q]); }
+    if(k){ const parsed = JSON.parse(k); Object.keys(parsed).forEach(q=> answerKey[q]=parsed[q]); }
+    if(m){ keyMode = JSON.parse(m); }
+  }catch(e){ /* storage unavailable or corrupted, start fresh */ }
+}
+
+function updateStats(){
+  if(keyMode){
+    const count = Object.keys(answerKey).length;
+    statsEl.textContent = count + " / " + TOTAL + " key answers set";
+  } else {
+    const count = Object.keys(answers).length;
+    statsEl.textContent = count + " / " + TOTAL + " answered";
+  }
+}
+
+PARTS.forEach(part=>{
+  const section = document.createElement('div');
+  section.className = 'part';
+  section.setAttribute('data-part', part.label);
+
+  const title = document.createElement('div');
+  title.className = 'part-title';
+  title.innerHTML = part.label + ' <span class="part-sub">Q' + part.start + '–' + part.end + ' · ' + part.sub + '</span><span class="part-score" data-partscore></span>';
+  section.appendChild(title);
+
+  const grid = document.createElement('div');
+  grid.className = 'grid';
+
+  for(let i=part.start;i<=part.end;i++){
+    const item = document.createElement('div');
+    item.className = 'item';
+
+    const qnum = document.createElement('div');
+    qnum.className = 'qnum';
+    qnum.textContent = i + '.';
+    item.appendChild(qnum);
+
+    const choicesDiv = document.createElement('div');
+    choicesDiv.className = 'choices';
+
+    CHOICES.forEach(letter=>{
+      const btn = document.createElement('button');
+      btn.className = 'choice';
+      btn.textContent = letter;
+      btn.setAttribute('data-c', letter);
+      btn.addEventListener('click', ()=> handleChoiceClick(i, letter, choicesDiv));
+      choicesDiv.appendChild(btn);
+    });
+
+    item.appendChild(choicesDiv);
+    grid.appendChild(item);
+    itemEls[i] = {item, choicesDiv, part: part.label};
+  }
+
+  section.appendChild(grid);
+  main.appendChild(section);
+});
+
+function handleChoiceClick(qnum, letter, choicesDiv){
+  if(submitted) clearGrading(); // editing after submit invalidates the result view
+
+  const store = keyMode ? answerKey : answers;
+  const current = store[qnum];
+  const siblings = choicesDiv.querySelectorAll('.choice');
+  if(current === letter){
+    delete store[qnum];
+    siblings.forEach(s=>s.classList.remove('selected'));
+  } else {
+    store[qnum] = letter;
+    siblings.forEach(s=>s.classList.toggle('selected', s.getAttribute('data-c')===letter));
+  }
+  updateStats();
+  saveState();
+}
+
+function refreshDisplayForMode(){
+  // repaint each item's selected state based on active store (answers or answerKey)
+  const store = keyMode ? answerKey : answers;
+  Object.keys(itemEls).forEach(qStr=>{
+    const q = +qStr;
+    const {choicesDiv} = itemEls[q];
+    const sel = store[q];
+    choicesDiv.querySelectorAll('.choice').forEach(btn=>{
+      btn.classList.toggle('selected', btn.getAttribute('data-c') === sel);
+    });
+  });
+}
+
+document.getElementById('keyModeBtn').addEventListener('click', ()=>{
+  keyMode = !keyMode;
+  document.body.classList.toggle('key-mode', keyMode);
+  document.getElementById('keyModeBtn').classList.toggle('active', keyMode);
+  document.getElementById('keyModeBtn').textContent = keyMode ? '🔑 Exit Key Mode' : '🔑 Set Answer Key';
+  document.getElementById('modeBanner').classList.toggle('show', keyMode);
+  document.getElementById('noKeyWarning').classList.remove('show');
+  clearGrading();
+  refreshDisplayForMode();
+  updateStats();
+  saveState();
+});
+
+const clearBtn = document.getElementById('clearBtn');
+let clearArmed = false;
+let clearArmTimer = null;
+clearBtn.addEventListener('click', ()=>{
+  if(!clearArmed){
+    clearArmed = true;
+    clearBtn.textContent = 'Click again to confirm';
+    clearBtn.classList.add('active');
+    clearArmTimer = setTimeout(()=>{
+      clearArmed = false;
+      clearBtn.textContent = 'Clear All';
+      clearBtn.classList.remove('active');
+    }, 2500);
+    return;
+  }
+  clearTimeout(clearArmTimer);
+  clearArmed = false;
+  clearBtn.textContent = 'Clear All';
+  clearBtn.classList.remove('active');
+
+  const store = keyMode ? answerKey : answers;
+  Object.keys(store).forEach(k=>delete store[k]);
+  clearGrading();
+  refreshDisplayForMode();
+  updateStats();
+  saveState();
+});
+
+function clearGrading(){
+  submitted = false;
+  document.getElementById('scorePanel').classList.remove('show');
+  Object.values(itemEls).forEach(({item, choicesDiv})=>{
+    item.classList.remove('correct','incorrect');
+    choicesDiv.querySelectorAll('.choice').forEach(b=>b.classList.remove('mark-correct','mark-missed'));
+  });
+  document.querySelectorAll('[data-partscore]').forEach(el=> el.textContent = '');
+}
+
+document.getElementById('submitBtn').addEventListener('click', ()=>{
+  const keyCount = Object.keys(answerKey).length;
+  const warnEl = document.getElementById('noKeyWarning');
+  if(keyCount === 0){
+    warnEl.classList.add('show');
+    return;
+  }
+  warnEl.classList.remove('show');
+
+  clearGrading();
+  submitted = true;
+
+  let correct = 0, incorrect = 0, blank = 0, graded = 0;
+  const partTally = {};
+  PARTS.forEach(p=> partTally[p.label] = {correct:0, total:0});
+
+  Object.keys(itemEls).forEach(qStr=>{
+    const q = +qStr;
+    const {item, choicesDiv, part} = itemEls[q];
+    const correctLetter = answerKey[q];
+    if(!correctLetter) return; // question has no key set, skip grading it
+    graded++;
+    partTally[part].total++;
+    const userLetter = answers[q];
+
+    const correctBtn = choicesDiv.querySelector('.choice[data-c="'+correctLetter+'"]');
+    if(userLetter === correctLetter){
+      correct++;
+      partTally[part].correct++;
+      item.classList.add('correct');
+      correctBtn.classList.add('mark-correct');
+    } else if(!userLetter){
+      blank++;
+      item.classList.add('incorrect');
+      correctBtn.classList.add('mark-correct');
+    } else {
+      incorrect++;
+      item.classList.add('incorrect');
+      correctBtn.classList.add('mark-correct');
+      const wrongBtn = choicesDiv.querySelector('.choice[data-c="'+userLetter+'"]');
+      wrongBtn.classList.add('mark-missed');
+    }
+  });
+
+  document.getElementById('scoreBig').textContent = correct + ' / ' + graded + ' correct';
+  const rows = document.getElementById('scoreRows');
+  const pct = graded ? Math.round((correct/graded)*100) : 0;
+  rows.innerHTML =
+    '<div>Correct: <span>' + correct + '</span></div>' +
+    '<div>Incorrect: <span>' + incorrect + '</span></div>' +
+    '<div>Blank: <span>' + blank + '</span></div>' +
+    '<div>Accuracy: <span>' + pct + '%</span></div>';
+  document.getElementById('scorePanel').classList.add('show');
+
+  PARTS.forEach(p=>{
+    const el = document.querySelector('[data-part="'+p.label+'"] [data-partscore]');
+    const t = partTally[p.label];
+    if(t.total > 0) el.textContent = t.correct + '/' + t.total;
+  });
+
+  document.getElementById('scorePanel').scrollIntoView({behavior:'smooth', block:'start'});
+});
+
+// Zoom
+let scale = 1;
+const MIN_SCALE = 0.7, MAX_SCALE = 1.6, STEP = 0.1;
+const zoomLabel = document.getElementById('zoomLabel');
+function applyZoom(){
+  document.documentElement.style.setProperty('--scale', scale.toFixed(2));
+  zoomLabel.textContent = Math.round(scale*100) + '%';
+}
+document.getElementById('zoomIn').addEventListener('click', ()=>{
+  scale = Math.min(MAX_SCALE, +(scale + STEP).toFixed(2));
+  applyZoom();
+});
+document.getElementById('zoomOut').addEventListener('click', ()=>{
+  scale = Math.max(MIN_SCALE, +(scale - STEP).toFixed(2));
+  applyZoom();
+});
+
+updateStats();
+applyZoom();
+
+// Load any saved state and repaint
+loadState();
+document.body.classList.toggle('key-mode', keyMode);
+document.getElementById('keyModeBtn').classList.toggle('active', keyMode);
+document.getElementById('keyModeBtn').textContent = keyMode ? '🔑 Exit Key Mode' : '🔑 Set Answer Key';
+document.getElementById('modeBanner').classList.toggle('show', keyMode);
+refreshDisplayForMode();
+updateStats();
+</script>
+</body>
+</html>
